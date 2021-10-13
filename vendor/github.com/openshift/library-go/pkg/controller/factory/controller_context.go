@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog/v2"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 )
@@ -20,13 +22,12 @@ type syncContext struct {
 	eventRecorder events.Recorder
 	queue         workqueue.RateLimitingInterface
 	queueKey      string
+	queueCancel   context.CancelFunc
 }
-
-var _ SyncContext = syncContext{}
 
 // NewSyncContext gives new sync context.
 func NewSyncContext(name string, recorder events.Recorder) SyncContext {
-	return syncContext{
+	return &syncContext{
 		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), name),
 		eventRecorder: recorder.WithComponentSuffix(strings.ToLower(name)),
 	}
@@ -44,8 +45,24 @@ func (c syncContext) Recorder() events.Recorder {
 	return c.eventRecorder
 }
 
+func (c syncContext) Cancel() {
+	if c.queueCancel == nil {
+		klog.V(1).Infof("JERPETER: Error cancelling synccontext")
+	} else {
+		c.queueCancel()
+	}
+}
+
+func (c *syncContext) SetQueueKey(queueKey string) {
+	c.queueKey = queueKey
+}
+
+func (c *syncContext) SetCancel(queueCancel context.CancelFunc) {
+	c.queueCancel = queueCancel
+}
+
 // eventHandler provides default event handler that is added to an informers passed to controller factory.
-func (c syncContext) eventHandler(queueKeyFunc ObjectQueueKeyFunc, filter EventFilterFunc) cache.ResourceEventHandler {
+func (c syncContext) EventHandler(queueKeyFunc ObjectQueueKeyFunc, filter EventFilterFunc) cache.ResourceEventHandler {
 	resourceEventHandler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			runtimeObj, ok := obj.(runtime.Object)

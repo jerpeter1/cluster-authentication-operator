@@ -202,7 +202,8 @@ func (c *StaticResourceController) AddNamespaceInformer(informer cache.SharedInd
 	return c
 }
 
-func (c StaticResourceController) Sync(ctx context.Context, syncContext factory.SyncContext) error {
+func (c *StaticResourceController) Sync(ctx context.Context, syncContext factory.SyncContext) error {
+
 	operatorSpec, _, _, err := c.operatorClient.GetOperatorState()
 	if err != nil {
 		return err
@@ -244,6 +245,9 @@ func (c StaticResourceController) Sync(ctx context.Context, syncContext factory.
 			// all errors were NotFound
 			cnd.Status = operatorv1.ConditionFalse
 		}
+	} else {
+		klog.V(1).Infof("JERPETER: All static resources have been synced, stopping StaticResourceController %s", c.name)
+		syncContext.Cancel()
 	}
 
 	_, _, err = v1helpers.UpdateStatus(c.operatorClient, v1helpers.UpdateConditionFn(cnd))
@@ -319,5 +323,6 @@ func (c *StaticResourceController) RelatedObjects() ([]configv1.ObjectReference,
 }
 
 func (c *StaticResourceController) Run(ctx context.Context, workers int) {
+	klog.V(1).Infof("JERPETER: Running StaticResourceController %s, workers %d", c.name, workers)
 	c.factory.WithSync(c.Sync).ToController(c.Name(), c.eventRecorder).Run(ctx, workers)
 }

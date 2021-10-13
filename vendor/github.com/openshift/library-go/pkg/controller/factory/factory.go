@@ -246,7 +246,7 @@ func (f *Factory) ToController(name string, eventRecorder events.Recorder) Contr
 		for d := range f.informerQueueKeys[i].informers {
 			informer := f.informerQueueKeys[i].informers[d]
 			queueKeyFn := f.informerQueueKeys[i].queueKeyFn
-			informer.AddEventHandler(c.syncContext.(syncContext).eventHandler(queueKeyFn, f.informerQueueKeys[i].filter))
+			informer.AddEventHandler(c.syncContext.EventHandler(queueKeyFn, f.informerQueueKeys[i].filter))
 			c.cachesToSync = append(c.cachesToSync, informer.HasSynced)
 		}
 	}
@@ -254,7 +254,7 @@ func (f *Factory) ToController(name string, eventRecorder events.Recorder) Contr
 	for i := range f.informers {
 		for d := range f.informers[i].informers {
 			informer := f.informers[i].informers[d]
-			informer.AddEventHandler(c.syncContext.(syncContext).eventHandler(func(runtime.Object) string {
+			informer.AddEventHandler(c.syncContext.EventHandler(func(runtime.Object) string {
 				return DefaultQueueKey
 			}, f.informers[i].filter))
 			c.cachesToSync = append(c.cachesToSync, informer.HasSynced)
@@ -266,7 +266,7 @@ func (f *Factory) ToController(name string, eventRecorder events.Recorder) Contr
 	}
 
 	for i := range f.namespaceInformers {
-		f.namespaceInformers[i].informer.AddEventHandler(c.syncContext.(syncContext).eventHandler(func(runtime.Object) string {
+		f.namespaceInformers[i].informer.AddEventHandler(c.syncContext.EventHandler(func(runtime.Object) string {
 			return DefaultQueueKey
 		}, f.namespaceInformers[i].nsFilter))
 		c.cachesToSync = append(c.cachesToSync, f.namespaceInformers[i].informer.HasSynced)

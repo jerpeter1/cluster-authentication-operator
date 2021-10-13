@@ -105,6 +105,8 @@ func (c *baseController) Run(ctx context.Context, workers int) {
 
 	// queueContext is used to track and initiate queue shutdown
 	queueContext, queueContextCancel := context.WithCancel(context.TODO())
+	klog.Infof("JERPETER: Set queueCancel %d", queueContextCancel)
+	c.syncContext.SetCancel(queueContextCancel)
 
 	for i := 1; i <= workers; i++ {
 		klog.Infof("Starting #%d worker of %s controller ...", i, c.name)
@@ -184,6 +186,7 @@ func (c *baseController) runPeriodicalResync(ctx context.Context, interval time.
 // The worker is asked to terminate when the passed context is cancelled and is given terminationGraceDuration time
 // to complete its shutdown.
 func (c *baseController) runWorker(queueCtx context.Context) {
+	klog.V(1).Infof("JERPETER: runworker %s", c.name)
 	wait.UntilWithContext(
 		queueCtx,
 		func(queueCtx context.Context) {
@@ -253,15 +256,21 @@ func (c *baseController) processNextWorkItem(queueCtx context.Context) {
 	}
 	defer c.syncContext.Queue().Done(key)
 
-	syncCtx := c.syncContext.(syncContext)
+	// syncCtx := c.syncContext.(syncContext)
+	// syncCtx.queueKey, ok = key.(string)
+
 	var ok bool
-	syncCtx.queueKey, ok = key.(string)
+	var keystring string
+	keystring, ok = key.(string)
+
 	if !ok {
 		utilruntime.HandleError(fmt.Errorf("%q controller failed to process key %q (not a string)", c.name, key))
 		return
+	} else {
+		c.syncContext.SetQueueKey(keystring)
 	}
 
-	if err := c.reconcile(queueCtx, syncCtx); err != nil {
+	if err := c.reconcile(queueCtx, c.syncContext); err != nil {
 		if err == SyntheticRequeueError {
 			// logging this helps detecting wedged controllers with missing pre-requirements
 			klog.V(5).Infof("%q controller requested synthetic requeue with key %q", c.name, key)

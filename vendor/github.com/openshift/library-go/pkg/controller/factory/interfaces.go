@@ -3,6 +3,7 @@ package factory
 import (
 	"context"
 
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -39,6 +40,12 @@ type SyncContext interface {
 
 	// Recorder provide access to event recorder.
 	Recorder() events.Recorder
+
+	Cancel()
+	SetQueueKey(string)
+	SetCancel(context.CancelFunc)
+
+	EventHandler(ObjectQueueKeyFunc, EventFilterFunc) cache.ResourceEventHandler
 }
 
 // SyncFunc is a function that contain main controller logic.
