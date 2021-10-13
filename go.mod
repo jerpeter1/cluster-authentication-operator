@@ -30,6 +30,6 @@ require (
 
 // points to temporary-watch-reduction-patch-1.21 to pick up k/k/pull/101102 - please remove it once the pr merges and a new Z release is cut
 // replace k8s.io/apiserver => github.com/openshift/kubernetes-apiserver v0.0.0-20210419140141-620426e63a99
-replace k8s.io/apiserver => /home/jerpeter/src/kubernetes-apiserver
-replace github.com/openshift/library-go => /home/jerpeter/src/library-go
-replace github.com/openshift/build-machinery-go => /home/jerpeter/src/build-machinery-go
+replace k8s.io/apiserver => ../kubernetes-apiserver
+replace github.com/openshift/library-go => ../library-go
+replace github.com/openshift/build-machinery-go => ../build-machinery-go
