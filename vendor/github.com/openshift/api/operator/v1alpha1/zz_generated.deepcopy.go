@@ -62,6 +62,7 @@ func (in *GenericOperatorConfig) DeepCopyInto(out *GenericOperatorConfig) {
 	out.TypeMeta = in.TypeMeta
 	in.ServingInfo.DeepCopyInto(&out.ServingInfo)
 	out.LeaderElection = in.LeaderElection
+	out.MetricsConfig = in.MetricsConfig
 	out.Authentication = in.Authentication
 	out.Authorization = in.Authorization
 	return

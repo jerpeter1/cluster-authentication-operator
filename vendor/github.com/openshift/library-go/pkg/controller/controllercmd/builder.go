@@ -67,6 +67,7 @@ type ControllerBuilder struct {
 	kubeAPIServerConfigFile *string
 	clientOverrides         *client.ClientConnectionOverrides
 	leaderElection          *configv1.LeaderElection
+	metricsConfig           *configv1.MetricsConfig
 	fileObserver            fileobserver.Observer
 	fileObserverReactorFn   func(file string, action fileobserver.ActionType) error
 	eventRecorderOptions    record.CorrelatorOptions
@@ -144,6 +145,12 @@ func (b *ControllerBuilder) WithLeaderElection(leaderElection configv1.LeaderEle
 
 	defaulted := leaderelectionconverter.LeaderElectionDefaulting(leaderElection, defaultNamespace, defaultName)
 	b.leaderElection = &defaulted
+	return b
+}
+
+// WithMetricsConfig adds metrics toggles
+func (b *ControllerBuilder) WithMetricsConfig(metricsConfig configv1.MetricsConfig) *ControllerBuilder {
+	b.metricsConfig = metricsConfig.DeepCopy()
 	return b
 }
 
@@ -259,7 +266,7 @@ func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstru
 
 	var server *genericapiserver.GenericAPIServer
 	if b.servingInfo != nil {
-		serverConfig, err := serving.ToServerConfig(ctx, *b.servingInfo, *b.authenticationConfig, *b.authorizationConfig, kubeConfig)
+		serverConfig, err := serving.ToServerConfig(ctx, *b.servingInfo, *b.authenticationConfig, *b.authorizationConfig, *b.metricsConfig, kubeConfig)
 		if err != nil {
 			return err
 		}

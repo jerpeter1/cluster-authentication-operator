@@ -136,6 +136,9 @@ type GenericOperatorConfig struct {
 	// leaderElection provides information to elect a leader. Only override this if you have a specific need
 	LeaderElection configv1.LeaderElection `json:"leaderElection,omitempty"`
 
+	// metricsConfig provides a way to toggle off a controllers metrics.
+	MetricsConfig configv1.MetricsConfig `json:"metricsConfig,omitempty"`
+
 	// authentication allows configuration of authentication for the endpoints
 	Authentication DelegatedAuthentication `json:"authentication,omitempty"`
 	// authorization allows configuration of authentication for the endpoints

@@ -16,11 +16,15 @@ import (
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 )
 
-func ToServerConfig(ctx context.Context, servingInfo configv1.HTTPServingInfo, authenticationConfig operatorv1alpha1.DelegatedAuthentication, authorizationConfig operatorv1alpha1.DelegatedAuthorization,
+func ToServerConfig(ctx context.Context, servingInfo configv1.HTTPServingInfo, authenticationConfig operatorv1alpha1.DelegatedAuthentication, authorizationConfig operatorv1alpha1.DelegatedAuthorization, metricsConfig configv1.MetricsConfig,
 	kubeConfigFile string) (*genericapiserver.Config, error) {
 	scheme := runtime.NewScheme()
 	metav1.AddToGroupVersion(scheme, metav1.SchemeGroupVersion)
 	config := genericapiserver.NewConfig(serializer.NewCodecFactory(scheme))
+
+	config.EnableMetrics = metricsConfig.EnableMetrics
+	config.EnableProfiling = metricsConfig.EnableProfiling
+	config.EnableWatermarks = metricsConfig.EnableWatermarks
 
 	servingOptions, err := ToServingOptions(servingInfo)
 	if err != nil {

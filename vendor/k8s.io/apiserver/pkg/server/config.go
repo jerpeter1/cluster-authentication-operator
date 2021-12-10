@@ -126,6 +126,7 @@ type Config struct {
 	// Requires generic profiling enabled
 	EnableContentionProfiling bool
 	EnableMetrics             bool
+	EnableWatermarks          bool
 
 	DisabledPostStartHooks sets.String
 	// done values in this values for this map are ignored.
@@ -329,6 +330,7 @@ func NewConfig(codecs serializer.CodecFactory) *Config {
 		EnableDiscovery:             true,
 		EnableProfiling:             true,
 		EnableMetrics:               true,
+		EnableWatermarks:            true,
 		MaxRequestsInFlight:         400,
 		MaxMutatingRequestsInFlight: 200,
 		RequestTimeout:              time.Duration(60) * time.Second,
@@ -679,27 +681,29 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 		klog.V(3).Infof("Not requested to run hook %s", priorityAndFairnessConfigConsumerHookName)
 	}
 
-	// Add PostStartHooks for maintaining the watermarks for the Priority-and-Fairness and the Max-in-Flight filters.
-	if c.FlowControl != nil {
-		const priorityAndFairnessFilterHookName = "priority-and-fairness-filter"
-		if !s.isPostStartHookRegistered(priorityAndFairnessFilterHookName) {
-			err := s.AddPostStartHook(priorityAndFairnessFilterHookName, func(context PostStartHookContext) error {
-				genericfilters.StartPriorityAndFairnessWatermarkMaintenance(context.StopCh)
-				return nil
-			})
-			if err != nil {
-				return nil, err
+	if c.EnableMetrics && c.EnableWatermarks {
+		// Add PostStartHooks for maintaining the watermarks for the Priority-and-Fairness and the Max-in-Flight filters.
+		if c.FlowControl != nil {
+			const priorityAndFairnessFilterHookName = "priority-and-fairness-filter"
+			if !s.isPostStartHookRegistered(priorityAndFairnessFilterHookName) {
+				err := s.AddPostStartHook(priorityAndFairnessFilterHookName, func(context PostStartHookContext) error {
+					genericfilters.StartPriorityAndFairnessWatermarkMaintenance(context.StopCh)
+					return nil
+				})
+				if err != nil {
+					return nil, err
+				}
 			}
-		}
-	} else {
-		const maxInFlightFilterHookName = "max-in-flight-filter"
-		if !s.isPostStartHookRegistered(maxInFlightFilterHookName) {
-			err := s.AddPostStartHook(maxInFlightFilterHookName, func(context PostStartHookContext) error {
-				genericfilters.StartMaxInFlightWatermarkMaintenance(context.StopCh)
-				return nil
-			})
-			if err != nil {
-				return nil, err
+		} else {
+			const maxInFlightFilterHookName = "max-in-flight-filter"
+			if !s.isPostStartHookRegistered(maxInFlightFilterHookName) {
+				err := s.AddPostStartHook(maxInFlightFilterHookName, func(context PostStartHookContext) error {
+					genericfilters.StartMaxInFlightWatermarkMaintenance(context.StopCh)
+					return nil
+				})
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}

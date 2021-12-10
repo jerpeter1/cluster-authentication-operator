@@ -112,6 +112,15 @@ type LeaderElection struct {
 	RetryPeriod metav1.Duration `json:"retryPeriod"`
 }
 
+type MetricsConfig struct {
+	// Toggle for metrics
+	EnableMetrics bool `json:"EnableMetrics,omitempty"`
+	// Toggle for profiling
+	EnableProfiling bool `json:"EnableProfiling,omitempty"`
+	// Toggle for watermarks
+	EnableWatermarks bool `json:"EnableWatermarks,omitempty"`
+}
+
 // StringSource allows specifying a string inline, or externally via env var or file.
 // When it contains only a string value, it marshals to a simple JSON string.
 type StringSource struct {
@@ -297,6 +306,9 @@ type GenericControllerConfig struct {
 	Authentication DelegatedAuthentication `json:"authentication"`
 	// authorization allows configuration of authentication for the endpoints
 	Authorization DelegatedAuthorization `json:"authorization"`
+
+	// MetricsConfig allows toggling of controller metrics
+	MetricsConfig MetricsConfig `json:"metricsConfig"`
 }
 
 // DelegatedAuthentication allows authentication to be disabled.

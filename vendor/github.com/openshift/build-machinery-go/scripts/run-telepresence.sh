@@ -116,10 +116,10 @@ if [ "${_TP_INTERNAL_RUN}" ]; then
 
   pushd "${TP_CMD_PATH}" > /dev/null
     if [[ "${TP_DEBUG}" ]]; then
-      if [[ "${TP_BUILD_FLAGS}" ]]; then
-        TP_BUILD_FLAGS="--build-flags=${TP_BUILD_FLAGS}"
-      fi
-      dlv debug ${TP_BUILD_FLAGS} -- ${TP_CMD_ARGS}
+      # dlv debug ${TP_BUILD_FLAGS} -- ${TP_CMD_ARGS}
+      go build -gcflags=all="-N -l" ${TP_BUILD_FLAGS} -o testoutput
+      ./testoutput ${TP_CMD_ARGS} &
+      dlv attach $! ./testoutput --headless --listen=0.0.0.0:2345 --log --api-version 2
     else
       go run ${TP_BUILD_FLAGS} . ${TP_CMD_ARGS}
     fi
@@ -160,29 +160,15 @@ else
   GROUP="$(jq_deployment '.apiVersion')"
 
   # Ensure the operator is not managed by CVO
-  oc patch clusterversion/version --type='merge' -p "$(cat <<- EOF
-spec:
-  overrides:
-  - group: ${GROUP}
-    kind: ${KIND}
-    name: ${NAME}
-    namespace: ${NAMESPACE}
-    unmanaged: true
-EOF
-)"
+  if [ -z $(oc get clusterversion/version -o=jsonpath='{.spec.overrides}') ]; then
+    oc patch clusterversion/version --type=json -p="[{'op': 'add', 'path': '/spec/overrides', 'value': []}]"
+  fi
+  oc patch clusterversion/version --type=json -p="[{'op': 'add', 'path': '/spec/overrides/-', 'value': {'group':'${GROUP}','kind':'${KIND}','name':'${NAME}','namespace':'${NAMESPACE}','unmanaged':true}}]"
 
   # Ensure the operator is managed again on shutdown
   function cleanup {
-    oc patch clusterversion/version --type='merge' -p "$(cat <<- EOF
-spec:
-  overrides:
-  - group: ${GROUP}
-    kind: ${KIND}
-    name: ${NAME}
-    namespace: ${NAMESPACE}
-    unmanaged: false
-EOF
-)"
+    INDEX=$(oc get clusterversion/version -o json  | jq ".spec.overrides | map(.name == \"${NAME}\") | index(true)")
+    oc patch clusterversion/version --type=json -p="[{'op': 'remove', 'path': '/spec/overrides/${INDEX}'}]"
   }
   trap cleanup EXIT
 
@@ -190,6 +176,8 @@ EOF
   # proxied so that the local operator will be able to access them.
   ALSO_PROXY="$(oc get machines -A -o json | jq -jr '.items[] | .status.addresses[0].address | @text "--also-proxy=\(.) "')"
 
+  set -x
   TELEPRESENCE_USE_OCP_IMAGE=NO _TP_INTERNAL_RUN=y telepresence --namespace="${NAMESPACE}"\
     --swap-deployment "${NAME}" ${ALSO_PROXY} --mount=/tmp/tel_root --run ${TP_RUN_CMD}
+  set +x
 fi

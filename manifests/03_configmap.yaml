@@ -13,3 +13,6 @@ data:
     kind: GenericOperatorConfig
     servingInfo:
       bindNetwork: "tcp"
+    metricsConfig:
+      enableMetrics: false
+      enableWatermarks: false

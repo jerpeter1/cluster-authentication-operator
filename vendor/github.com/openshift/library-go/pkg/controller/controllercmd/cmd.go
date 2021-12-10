@@ -285,7 +285,8 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 		WithVersion(c.version).
 		WithEventRecorderOptions(events.RecommendedClusterSingletonCorrelatorOptions()).
 		WithRestartOnChange(exitOnChangeReactorCh, startingFileContent, observedFiles...).
-		WithComponentOwnerReference(c.ComponentOwnerReference)
+		WithComponentOwnerReference(c.ComponentOwnerReference).
+		WithMetricsConfig(config.MetricsConfig)
 
 	if !c.DisableServing {
 		builder = builder.WithServer(config.ServingInfo, config.Authentication, config.Authorization)
